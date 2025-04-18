@@ -22,7 +22,7 @@ import os
 import struct
 import time
 
-from bpy.props import StringProperty
+from bpy.props import StringProperty, CollectionProperty
 from bpy_extras.io_utils import ImportHelper
 
 
@@ -38,16 +38,29 @@ class ImportMelonRipOp(bpy.types.Operator, ImportHelper):
     bl_options = {'PRESET', 'UNDO'}
 
     filename_ext = ".dump"
-    filter_glob: StringProperty(
-        default="*.dump;",
-        options={'HIDDEN'},
-    )
+filter_glob: StringProperty(
+    default="*.dump",
+    options={'HIDDEN'}
+)
+
+files: CollectionProperty(type=bpy.types.OperatorFileListElement)
+
 
     def execute(self, context):
         start_t = time.time()
 
         try:
-            import_rip(self.filepath)
+directory = os.path.dirname(self.filepath)
+
+for file_elem in self.files:
+    filepath = os.path.join(directory, file_elem.name)
+    print(f"Importing: {filepath}")
+    try:
+        import_rip(filepath)
+    except ShowErrorMsg as e:
+        self.report({'ERROR'}, f"{file_elem.name}: {e.args[0]}")
+        continue
+
 
         except ShowErrorMsg as e:
             self.report({'ERROR'}, e.args[0])
